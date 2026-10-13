@@ -39,7 +39,7 @@
       "amplification_max": true
     },
     "pass": true,
-    "runtime_s": 0.39
+    "runtime_s": 0.21
   },
   "G2_overload_storm": {
     "scenario": "G2_overload_storm",
@@ -83,7 +83,7 @@
       "primary_share_after_restore_min": true
     },
     "pass": true,
-    "runtime_s": 0.26
+    "runtime_s": 0.15
   },
   "G3_brownout": {
     "scenario": "G3_brownout",
@@ -122,7 +122,7 @@
       "amplification_max": true
     },
     "pass": true,
-    "runtime_s": 0.21
+    "runtime_s": 0.13
   },
   "G4_slow_region": {
     "scenario": "G4_slow_region",
@@ -162,7 +162,7 @@
       "primary_share_after_restore_min": true
     },
     "pass": true,
-    "runtime_s": 0.19
+    "runtime_s": 0.13
   },
   "G5_bad_deploy_then_quota": {
     "scenario": "G5_bad_deploy_then_quota",
@@ -206,7 +206,7 @@
       "availability_min": true
     },
     "pass": true,
-    "runtime_s": 0.14
+    "runtime_s": 0.13
   },
   "G6_provider_outage": {
     "scenario": "G6_provider_outage",
@@ -250,6 +250,6 @@
       "primary_share_after_restore_min": true
     },
     "pass": true,
-    "runtime_s": 0.15
+    "runtime_s": 0.14
   }
 }
