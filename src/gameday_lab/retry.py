@@ -26,14 +26,18 @@ class FullJitterBackoff:
         self.rng = rng or random.Random(0)
 
     def delay(self, retry_number: int, retry_after: float | None = None) -> float:
-        """TODO(student).
+        """Exponential backoff with full jitter.
 
         * raise ValueError if retry_number < 1
         * with retry_after:    retry_after + rng.uniform(0, base_s)
         * without retry_after: rng.uniform(0, min(cap_s, base_s * 2 ** (retry_number - 1)))
         Use ``self.rng`` (seeded) — never the global ``random`` module.
         """
-        raise NotImplementedError("TODO(student): FullJitterBackoff.delay()")
+        if retry_number < 1:
+            raise ValueError("retry_number must be >= 1")
+        if retry_after is not None:
+            return retry_after + self.rng.uniform(0, self.base_s)
+        return self.rng.uniform(0, min(self.cap_s, self.base_s * 2 ** (retry_number - 1)))
 
 
 class RetryBudget:
@@ -57,9 +61,27 @@ class RetryBudget:
         self._last: float | None = None  # virtual time of the previous call
 
     def record_request(self, now: float) -> None:
-        """TODO(student): refill by time elapsed since the previous call, then deposit ``ratio``."""
-        raise NotImplementedError("TODO(student): RetryBudget.record_request()")
+        """Refill by time elapsed since the previous call, then deposit ``ratio`` tokens (capped at ``max_tokens``)."""
+        if self._last is None:
+            self._last = now
+        elapsed = now - self._last
+        self._last = now
+        # Refill tokens based on elapsed time
+        refill_tokens = elapsed * self.min_per_s
+        self.tokens = min(self.max_tokens, self.tokens + refill_tokens)
+        # Deposit ratio tokens for this request
+        self.tokens = min(self.max_tokens, self.tokens + self.ratio)
 
     def try_acquire_retry(self, now: float) -> bool:
-        """TODO(student): refill by time elapsed; if tokens >= 1, take one and return True."""
-        raise NotImplementedError("TODO(student): RetryBudget.try_acquire_retry()")
+        """Refill by time elapsed; if tokens >= 1, take one and return True."""
+        if self._last is None:
+            self.record_request(now)
+        # Ensure tokens are refilled
+        elapsed = now - self._last
+        self._last = now
+        refill_tokens = elapsed * self.min_per_s
+        self.tokens = min(self.max_tokens, self.tokens + refill_tokens)
+        if self.tokens >= 1:
+            self.tokens -= 1
+            return True
+        return False
