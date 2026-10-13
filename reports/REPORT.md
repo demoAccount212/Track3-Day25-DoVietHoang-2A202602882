@@ -1,6 +1,6 @@
 # Lab 25B — Report
 
-**Họ tên / nhóm:** Đỗ Việt Hoàng / 2A202602882  **Commit:** <fill-in-after-push>  **Điểm tự động (`make grade`):** 84 / 88
+**Họ tên / nhóm:** Đỗ Việt Hoàng / 2A202602882  **Commit:** b675b274f9c94194508c557f8a645e0f1f1744f0  **Điểm tự động (`make grade`):** 84 / 88
 
 > Mọi nhận định phải có số. Dán số từ `reports/gameday/*.json`, `reports/workflows.json`, `reports/slo.json`.
 
