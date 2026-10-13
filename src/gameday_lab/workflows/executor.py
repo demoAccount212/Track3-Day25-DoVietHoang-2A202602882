@@ -28,14 +28,14 @@ T = TypeVar("T")
 
 
 def idempotency_key(req: RefundRequest, step: str) -> str:
-    """TODO(student): a key that is identical for every retry / restart of the same
+    """A key that is identical for every retry / restart of the same
     side effect of the same session, and different across sessions and steps."""
-    raise NotImplementedError("TODO(student): idempotency_key()")
+    return f"{req.session_id}:{step}"
 
 
 def checkpoint_key(req: RefundRequest, step: str) -> str:
-    """TODO(student): DurableStore key under which the result of ``step`` is saved."""
-    raise NotImplementedError("TODO(student): checkpoint_key()")
+    """DurableStore key under which the result of ``step`` is saved."""
+    return f"checkpoint:{req.session_id}:{step}"
 
 
 class WorkflowExecutor:
@@ -45,9 +45,20 @@ class WorkflowExecutor:
         self.max_attempts = max_attempts
 
     def _retry(self, fn: Callable[[], T]) -> T:
-        """TODO(student): call fn(); retry on ServiceError / ServiceTimeout up to
+        """Call fn(); retry on ServiceError / ServiceTimeout up to
         ``max_attempts`` times (re-raise the last one). Never catch WorkerCrash."""
-        raise NotImplementedError("TODO(student): _retry()")
+        last_error = None
+        for attempt in range(self.max_attempts):
+            try:
+                return fn()
+            except (ServiceError, ServiceTimeout) as e:
+                last_error = e
+                if attempt == self.max_attempts - 1:
+                    raise
+        # This shouldn't be reached due to the raise above, but just in case
+        if last_error:
+            raise last_error
+        raise RuntimeError("Retry loop exhausted without error")
 
     def _step(self, req: RefundRequest, state: dict[str, Any], step: str) -> Any:
         """PROVIDED: execute one step. ``state`` holds results of earlier steps."""
@@ -64,15 +75,34 @@ class WorkflowExecutor:
             return self._retry(lambda: self.s.email.send(req.customer_email, "refund_done", data, idempotency_key=key))
         if step == "write_summary":
             return self._retry(lambda: self.s.llm.summarize(state["issue_refund"]["refund_id"],
-                                                            state["send_email"]["message_id"]))
+                                                             state["send_email"]["message_id"]))
         raise ValueError(step)
 
     def run(self, req: RefundRequest) -> dict[str, Any]:
-        """TODO(student): run every step in STEPS for ``req``.
+        """Run every step in STEPS for ``req``.
 
         * a step whose checkpoint already exists in ``self.store`` was done by a
           previous (crashed) worker: load its result into ``state`` and skip it
         * otherwise execute it with ``self._step`` and checkpoint the result
         * return {"status": "done", **state}
         """
-        raise NotImplementedError("TODO(student): run()")
+        state: dict[str, Any] = {}
+
+        for step in STEPS:
+            # Check if checkpoint exists
+            ck_key = checkpoint_key(req, step)
+            if self.store.get(ck_key) is not None:
+                # Load from checkpoint
+                state[step] = self.store.get(ck_key)
+                continue
+
+            # Execute step
+            result = self._step(req, state, step)
+
+            # Checkpoint AFTER successful execution (order matters!)
+            self.store.put(ck_key, result)
+
+            # Update state
+            state[step] = result
+
+        return {"status": "done", **state}
